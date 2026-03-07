@@ -69,4 +69,42 @@ const getReports = async (req, res) => {
     }
 };
 
-module.exports = { getReports };
+const clearHistory = async (req, res) => {
+    try {
+        const userId = req.user.id;
+
+        // 1. Delete all Lifestyle documents for this user
+        await Lifestyle.deleteMany({ user: userId });
+
+        // 2. Delete all RiskResult documents for this user
+        await RiskResult.deleteMany({ user: userId });
+
+        // 3. Reset Dashboard history and stats
+        await Dashboard.findOneAndUpdate(
+            { user: userId },
+            {
+                $set: {
+                    currentRisk: 0,
+                    history: [],
+                    stats: {
+                        studyHours: 0,
+                        sleepHours: 0,
+                        stressLevel: 'Not Assessed',
+                        attendance: 0
+                    }
+                }
+            }
+        );
+
+        res.status(200).json({
+            success: true,
+            message: "All history deleted successfully"
+        });
+
+    } catch (error) {
+        console.error("Clear History Error:", error);
+        res.status(500).json({ success: false, message: "Server Error clearing history" });
+    }
+};
+
+module.exports = { getReports, clearHistory };

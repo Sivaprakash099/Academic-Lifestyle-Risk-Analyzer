@@ -12,13 +12,6 @@ export default function DashboardLayout() {
         setIsSidebarOpen(false);
     }, [location]);
 
-    // Mock user data - replace with actual auth context later
-    const user = {
-        name: "Student",
-        email: "student@example.com",
-        avatar: null
-    };
-
     return (
         <div className="flex h-screen bg-light overflow-hidden font-sans">
             {/* Sidebar */}
@@ -32,7 +25,6 @@ export default function DashboardLayout() {
                 {/* Navbar */}
                 <Navbar
                     onMenuClick={() => setIsSidebarOpen(true)}
-                    user={user}
                 />
 
                 {/* Main Content Area */}

@@ -46,10 +46,17 @@ export default function Reports() {
         toast.success("Report downloaded successfully (Demo)", { icon: '📥' });
     };
 
-    const handleClearHistory = () => {
-        setShowClearModal(false);
-        // Implement API call here to clear history
-        toast.success("History cleared successfully (Demo)", { icon: '🗑️' });
+    const handleClearHistory = async () => {
+        try {
+            await API.delete('/reports/clear');
+            toast.success("History cleared successfully", { icon: '🗑️' });
+            setShowClearModal(false);
+            fetchReports(); // Refresh data naturally
+        } catch (err) {
+            console.error("Clear History Error:", err);
+            toast.error(err.response?.data?.message || err.message || "Failed to clear history");
+            setShowClearModal(false);
+        }
     };
 
     const handleRecalculate = () => {

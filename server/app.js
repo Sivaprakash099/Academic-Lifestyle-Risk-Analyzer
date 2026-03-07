@@ -17,7 +17,7 @@ const app = express();
 // ==================
 // 1. CORS: Allow requests from frontend
 app.use(cors({
-  origin: 'http://localhost:5173', // Allow Vite frontend
+  origin: [/^http:\/\/localhost:\d+$/], // Allow any localhost port for Vite frontend
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
@@ -46,6 +46,7 @@ const reportsRoutes = require('./routes/reports.routes');
 
 // Mount routes
 app.use('/api/auth', authRoutes);
+app.use('/api/users', authRoutes); // Alias for /api/users/me requirement
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/risk', riskRoutes);
 app.use('/api/reports', reportsRoutes);
