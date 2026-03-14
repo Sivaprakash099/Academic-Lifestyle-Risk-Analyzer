@@ -50,14 +50,19 @@ const lifestyleRoutes = require('./routes/lifestyle.routes');
 const riskRoutes = require('./routes/risk.routes');
 const reportsRoutes = require('./routes/reports.routes');
 
-// Mount routes
-app.use('/api/auth', authRoutes);
-app.use('/api/users', authRoutes); // Alias for /api/users/me requirement
-app.use('/api/dashboard', dashboardRoutes);
-app.use('/api/lifestyle', lifestyleRoutes);
-app.use('/api/risk', riskRoutes);
-app.use('/api/risk-analysis', riskRoutes); // Combined Alias
-app.use('/api/reports', reportsRoutes);
+// Mount routes (both with /api prefix and directly for compatibility)
+const mountRoutes = (prefix = '') => {
+  app.use(`${prefix}/auth`, authRoutes);
+  app.use(`${prefix}/users`, authRoutes);
+  app.use(`${prefix}/dashboard`, dashboardRoutes);
+  app.use(`${prefix}/lifestyle`, lifestyleRoutes);
+  app.use(`${prefix}/risk`, riskRoutes);
+  app.use(`${prefix}/risk-analysis`, riskRoutes);
+  app.use(`${prefix}/reports`, reportsRoutes);
+};
+
+mountRoutes('/api');
+mountRoutes(); // Compatibility for requests missing /api prefix
 
 // Test Route
 app.get('/', (req, res) => {
