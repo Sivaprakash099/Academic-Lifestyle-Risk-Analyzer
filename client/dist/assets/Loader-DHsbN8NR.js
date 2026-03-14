@@ -1,1 +1,0 @@
-import{j as s}from"./vendor-CHOdf4FO.js";import{L as m}from"./Button-BtmupffI.js";const o=({size:e="md",className:r=""})=>{const t={sm:"w-4 h-4",md:"w-8 h-8",lg:"w-12 h-12"};return s.jsx("div",{className:`flex justify-center items-center ${r}`,children:s.jsx(m,{className:`${t[e]} animate-spin text-primary`})})};export{o as L};
