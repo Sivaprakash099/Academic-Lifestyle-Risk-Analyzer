@@ -17,7 +17,11 @@ const app = express();
 // ==================
 // 1. CORS: Allow requests from frontend
 app.use(cors({
-  origin: [/^http:\/\/localhost:\d+$/], // Allow any localhost port for Vite frontend
+  origin: [
+    /^http:\/\/localhost:\d+$/, 
+    'https://academic-risk-analyzer-17bfa.web.app', 
+    'https://academic-risk-analyzer-17bfa.firebaseapp.com'
+  ], // Allow localhost and live Firebase domains
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
