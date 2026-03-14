@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Bell, Menu, User, ChevronDown, LogOut, Settings, UserCircle, Sun, Moon } from 'lucide-react';
 import toast from 'react-hot-toast';
+import API from '../../services/api';
 
 const Navbar = ({ onMenuClick }) => {
     const [userData, setUserData] = useState(null);
@@ -35,26 +36,15 @@ const Navbar = ({ onMenuClick }) => {
             }
 
             try {
-                const response = await fetch('http://localhost:5000/api/users/me', {
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
-                });
-
-                if (response.ok) {
-                    const data = await response.json();
-                    setUserData(data);
-                } else {
-                    if (response.status === 401) {
-                        localStorage.removeItem('token');
-                        localStorage.removeItem('user');
-                        navigate('/login');
-                    }
-                    throw new Error('Failed to fetch user');
-                }
+                const response = await API.get('/users/me');
+                setUserData(response.data);
             } catch (error) {
                 console.error('Error fetching user:', error);
-                // Redirect if unauthorized or error
+                if (error.response?.status === 401) {
+                    localStorage.removeItem('token');
+                    localStorage.removeItem('user');
+                    navigate('/login');
+                }
             } finally {
                 setLoading(false);
             }

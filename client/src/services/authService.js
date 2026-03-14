@@ -18,6 +18,15 @@ const login = async (userData) => {
     return response.data;
 };
 
+const googleLogin = async (userData) => {
+    const response = await API.post('/auth/google', userData);
+    if (response.data) {
+        localStorage.setItem('user', JSON.stringify(response.data));
+        localStorage.setItem('token', response.data.token);
+    }
+    return response.data;
+};
+
 const logout = () => {
     localStorage.clear();
 };
@@ -29,6 +38,7 @@ const getCurrentUser = () => {
 const authService = {
     register,
     login,
+    googleLogin,
     logout,
     getCurrentUser,
 };

@@ -7,6 +7,7 @@ import Input from '../components/ui/Input';
 import Button from '../components/ui/Button';
 import { signInWithPopup } from 'firebase/auth';
 import { auth, googleProvider } from '../firebase';
+import authService from '../services/authService';
 
 export default function Login() {
     const navigate = useNavigate();
@@ -40,39 +41,20 @@ export default function Login() {
             const result = await signInWithPopup(auth, googleProvider);
             const user = result.user;
 
-            // Sync with backend
-            const response = await fetch('http://localhost:5000/api/auth/google', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    name: user.displayName,
-                    email: user.email,
-                    photo: user.photoURL
-                }),
-            });
-
-            const data = await response.json();
-
-            if (!response.ok) {
-                throw new Error(data.message || 'Google login failed');
-            }
-
-            localStorage.setItem('token', data.token);
-            localStorage.setItem('user', JSON.stringify({
-                name: data.name,
-                email: data.email,
-                role: data.role,
+            // Sync with backend using authService
+            await authService.googleLogin({
+                name: user.displayName,
+                email: user.email,
                 photo: user.photoURL
-            }));
+            });
 
             toast.success('Signed in with Google!');
             navigate('/');
         } catch (error) {
             console.error('Google login error:', error);
             if (error.code !== 'auth/popup-closed-by-user') {
-                toast.error(error.message || 'Google authentication failed');
+                const message = error.response?.data?.message || error.message || 'Google authentication failed';
+                toast.error(message);
             }
         } finally {
             setIsGoogleLoading(false);
@@ -89,35 +71,17 @@ export default function Login() {
 
         setIsLoading(true);
         try {
-            const response = await fetch('http://localhost:5000/api/auth/login', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    email: formData.email,
-                    password: formData.password
-                }),
+            await authService.login({
+                email: formData.email,
+                password: formData.password
             });
-
-            const data = await response.json();
-
-            if (!response.ok) {
-                throw new Error(data.message || 'Login failed');
-            }
-
-            localStorage.setItem('token', data.token);
-            localStorage.setItem('user', JSON.stringify({
-                name: data.name,
-                email: data.email,
-                role: data.role
-            }));
 
             toast.success('Login successful!');
             navigate('/');
         } catch (error) {
             console.error('Login error:', error);
-            toast.error(error.message);
+            const message = error.response?.data?.message || error.message || 'Login failed';
+            toast.error(message);
         } finally {
             setIsLoading(false);
         }

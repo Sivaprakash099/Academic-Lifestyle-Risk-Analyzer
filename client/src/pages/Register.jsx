@@ -5,6 +5,7 @@ import { toast } from 'react-hot-toast';
 import AuthLayout from '../layouts/AuthLayout';
 import Input from '../components/ui/Input';
 import Button from '../components/ui/Button';
+import authService from '../services/authService';
 
 export default function Register() {
     const navigate = useNavigate();
@@ -31,7 +32,7 @@ export default function Register() {
         if (!formData.email) newErrors.email = 'Email is required';
         if (!formData.password) newErrors.password = 'Password is required';
         if (formData.password.length < 6) newErrors.password = 'Password must be at least 6 characters';
-        if (formData.password !== formData.confirmPassword) {
+        if (formData.confirmPassword !== undefined && formData.password !== formData.confirmPassword) {
             newErrors.confirmPassword = 'Passwords do not match';
         }
         return newErrors;
@@ -47,35 +48,22 @@ export default function Register() {
 
         setIsLoading(true);
         try {
-            const response = await fetch('http://localhost:5000/api/auth/register', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    name: formData.name,
-                    email: formData.email,
-                    password: formData.password
-                }),
+            await authService.register({
+                name: formData.name,
+                email: formData.email,
+                password: formData.password
             });
-
-            const data = await response.json();
-
-            if (!response.ok) {
-                // If the server returns an error message, throw it
-                throw new Error(data.message || 'Registration failed');
-            }
 
             // Success case
             toast.success('Registration successful! Please login.');
 
-            // Optional: Auto login? For now, redirect to login
+            // Success redirect to login
             navigate('/login');
 
         } catch (error) {
             console.error('Registration error:', error);
-            // Display the specific error message from the backend
-            toast.error(error.message || 'Something went wrong during registration.');
+            const message = error.response?.data?.message || error.message || 'Something went wrong during registration.';
+            toast.error(message);
         } finally {
             setIsLoading(false);
         }
