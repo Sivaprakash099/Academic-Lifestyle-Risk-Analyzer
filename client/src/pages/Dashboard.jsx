@@ -31,6 +31,7 @@ const item = {
     hidden: { y: 20, opacity: 0 },
     show: { y: 0, opacity: 1 }
 };
+import API from '../services/api';
 
 export default function Dashboard() {
     const navigate = useNavigate();
@@ -58,23 +59,8 @@ export default function Dashboard() {
 
     const fetchDashboardData = React.useCallback(async () => {
         try {
-            const token = localStorage.getItem('token');
-            if (!token) {
-                navigate('/login');
-                return;
-            }
-
-            const response = await fetch('/api/dashboard', {
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
-            });
-
-            if (!response.ok) {
-                throw new Error('Failed to fetch dashboard data');
-            }
-
-            const result = await response.json();
+            const res = await API.get('dashboard');
+            const result = res.data;
 
             setData({
                 user: result.user || { name: 'Student' },
@@ -100,7 +86,11 @@ export default function Dashboard() {
             });
         } catch (err) {
             console.error('Dashboard Error:', err);
-            setError(err.message);
+            if (err.response?.status === 401) {
+                navigate('/login');
+                return;
+            }
+            setError(err.response?.data?.message || err.message);
         } finally {
             setIsLoading(false);
         }
@@ -111,20 +101,12 @@ export default function Dashboard() {
     }, [fetchDashboardData]);
 
     const handleCGPAUpdate = React.useCallback(async (cgpaData) => {
-        const token = localStorage.getItem('token');
-        const response = await fetch('/api/dashboard/cgpa', {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
-            },
-            body: JSON.stringify(cgpaData)
-        });
-
-        if (response.ok) {
+        try {
+            await API.put('dashboard/cgpa', cgpaData);
             fetchDashboardData();
-        } else {
-            throw new Error('Update failed');
+        } catch (err) {
+            console.error('Update failed:', err);
+            toast.error('Failed to update CGPA');
         }
     }, [fetchDashboardData]);
 

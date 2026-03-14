@@ -36,7 +36,7 @@ const Navbar = ({ onMenuClick }) => {
             }
 
             try {
-                const response = await API.get('/users/me');
+                const response = await API.get('users/me');
                 setUserData(response.data);
             } catch (error) {
                 console.error('Error fetching user:', error);

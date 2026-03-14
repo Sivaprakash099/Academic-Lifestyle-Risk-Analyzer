@@ -1,7 +1,7 @@
 import API from './api';
 
 const register = async (userData) => {
-    const response = await API.post('/auth/register', userData);
+    const response = await API.post('auth/register', userData);
     if (response.data) {
         localStorage.setItem('user', JSON.stringify(response.data));
         localStorage.setItem('token', response.data.token);
@@ -10,7 +10,7 @@ const register = async (userData) => {
 };
 
 const login = async (userData) => {
-    const response = await API.post('/auth/login', userData);
+    const response = await API.post('auth/login', userData);
     if (response.data) {
         localStorage.setItem('user', JSON.stringify(response.data));
         localStorage.setItem('token', response.data.token);
@@ -19,7 +19,7 @@ const login = async (userData) => {
 };
 
 const googleLogin = async (userData) => {
-    const response = await API.post('/auth/google', userData);
+    const response = await API.post('auth/google', userData);
     if (response.data) {
         localStorage.setItem('user', JSON.stringify(response.data));
         localStorage.setItem('token', response.data.token);

@@ -46,6 +46,7 @@ app.use((req, res, next) => {
 // Import routes
 const authRoutes = require('./routes/auth.routes');
 const dashboardRoutes = require('./routes/dashboard.routes');
+const lifestyleRoutes = require('./routes/lifestyle.routes');
 const riskRoutes = require('./routes/risk.routes');
 const reportsRoutes = require('./routes/reports.routes');
 
@@ -53,6 +54,7 @@ const reportsRoutes = require('./routes/reports.routes');
 app.use('/api/auth', authRoutes);
 app.use('/api/users', authRoutes); // Alias for /api/users/me requirement
 app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/lifestyle', lifestyleRoutes);
 app.use('/api/risk', riskRoutes);
 app.use('/api/risk-analysis', riskRoutes); // Combined Alias
 app.use('/api/reports', reportsRoutes);
