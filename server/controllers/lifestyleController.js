@@ -1,5 +1,5 @@
 const Lifestyle = require('../models/Lifestyle');
-const RiskResult = require('../models/RiskResult');
+const RiskAnalysis = require('../models/RiskAnalysis');
 
 // @desc    Add new lifestyle data
 // @route   POST /api/lifestyle

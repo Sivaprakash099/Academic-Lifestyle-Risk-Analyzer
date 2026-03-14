@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import Sidebar from '../components/layout/Sidebar';
-import Navbar from '../components/layout/Navbar';
 
 export default function DashboardLayout() {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -22,15 +21,10 @@ export default function DashboardLayout() {
 
             {/* Main Content Wrapper */}
             <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-                {/* Navbar */}
-                <Navbar
-                    onMenuClick={() => setIsSidebarOpen(true)}
-                />
-
                 {/* Main Content Area */}
                 <main className="flex-1 overflow-y-auto bg-gray-50/50 p-4 md:p-6 lg:p-8 scroll-smooth">
                     <div className="max-w-7xl mx-auto h-full animate-fade-in">
-                        <Outlet />
+                        <Outlet context={{ openSidebar: () => setIsSidebarOpen(true) }} />
                     </div>
                 </main>
             </div>

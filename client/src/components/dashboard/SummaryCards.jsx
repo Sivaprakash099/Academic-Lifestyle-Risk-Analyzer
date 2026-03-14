@@ -1,60 +1,73 @@
 import React from 'react';
 import { BookOpen, Moon, Activity, CalendarCheck } from 'lucide-react';
 import Card from '../ui/Card';
+import { LineChart, Line, ResponsiveContainer, YAxis } from 'recharts';
 
-const StatCard = ({ title, value, unit, icon: Icon, colorClass, trend }) => (
-    <Card className="flex items-center justify-between hover:shadow-card transition-all duration-300 border border-gray-100 group">
-        <div>
-            <p className="text-sm font-medium text-text-secondary mb-1 group-hover:text-primary transition-colors">{title}</p>
-            <div className="flex items-baseline gap-1">
-                <h4 className="text-2xl font-bold text-text-primary">{value}</h4>
-                <span className="text-sm font-medium text-text-muted">{unit}</span>
+const dummyData = [
+  { value: 40 }, { value: 30 }, { value: 45 }, { value: 50 }, { value: 65 }, { value: 60 }, { value: 80 }
+];
+
+const StatCard = ({ title, value, unit, icon: Icon, trend, trendText, isGraphReversed }) => {
+    // We remove Recharts to perfectly match the clean requested SaaS style with trend text
+    return (
+        <Card className="flex flex-col justify-between">
+            <div className="flex justify-between items-start mb-4">
+                <div>
+                    <p className="text-text-secondary font-medium text-sm mb-1">{title}</p>
+                    <h3 className="text-3xl font-bold text-text-primary tracking-tight">
+                        {value}
+                        {unit && <span className="text-lg text-text-muted ml-1 font-medium">{unit}</span>}
+                    </h3>
+                </div>
+                <div className="p-3 bg-gray-50 rounded-full text-text-secondary">
+                    <Icon size={20} />
+                </div>
             </div>
-            {trend && (
-                <p className={`text-xs mt-2 font-medium flex items-center gap-1 ${trend > 0 ? 'text-success' : 'text-danger'}`}>
-                    {trend > 0 ? '+' : ''}{trend}%
-                    <span className="text-text-muted font-normal">vs last week</span>
-                </p>
+
+            {trend !== undefined && trendText && (
+                <div className="flex items-center mt-2">
+                    <span className={`text-sm font-medium ${trend > 0 ? (isGraphReversed ? 'text-danger' : 'text-success') : (isGraphReversed ? 'text-success' : 'text-danger')}`}>
+                        {trendText}
+                    </span>
+                </div>
             )}
-        </div>
-        <div className={`p-3 rounded-2xl ${colorClass}`}>
-            <Icon size={24} />
-        </div>
-    </Card>
-);
+        </Card>
+    );
+};
 
 export default function SummaryCards({ data }) {
+    // Determine display unit based on backend data (if missing, use defaults from prompt)
     const stats = [
         {
             title: 'Study Hours',
-            value: data.studyHours || 0,
-            unit: 'hrs',
+            value: data.studyHours || '0',
+            unit: data.studyHours ? 'hrs' : 'hrs',
             icon: BookOpen,
-            colorClass: 'bg-blue-50 text-blue-600',
-            trend: 5
+            trend: 5,
+            trendText: '(+5% vs last week)',
         },
         {
-            title: 'Avg. Sleep',
-            value: data.sleepHours || 0,
-            unit: 'hrs',
+            title: 'Avg Sleep',
+            value: data.sleepHours || '0',
+            unit: data.sleepHours ? 'hrs' : 'hrs',
             icon: Moon,
-            colorClass: 'bg-indigo-50 text-indigo-600',
-            trend: -2
+            trend: undefined,
+            trendText: '',
+            isGraphReversed: true,
         },
         {
             title: 'Stress Level',
-            value: data.stressLevel || 'N/A',
+            value: data.stressLevel || 'Not Assessed',
             unit: '',
             icon: Activity,
-            colorClass: 'bg-purple-50 text-purple-600',
         },
         {
             title: 'Attendance',
-            value: data.attendance || 0,
-            unit: '%',
+            value: data.attendance || '0',
+            unit: data.attendance ? '%' : '%',
             icon: CalendarCheck,
-            colorClass: 'bg-green-50 text-green-600',
-            trend: 12
+            trend: undefined,
+            trendText: '',
         },
     ];
 

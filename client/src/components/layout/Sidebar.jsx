@@ -1,6 +1,8 @@
 import React from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Activity, FileText, User, Settings, LogOut, X } from 'lucide-react';
+import { LayoutDashboard, Activity, Target, FileText, User, Settings, LogOut, X, History } from 'lucide-react';
+import { auth } from '../../firebase';
+import { signOut } from 'firebase/auth';
 
 const Sidebar = ({ isOpen, onClose, className = '' }) => {
     const location = useLocation();
@@ -8,13 +10,19 @@ const Sidebar = ({ isOpen, onClose, className = '' }) => {
     const menuItems = [
         { name: 'Dashboard', icon: LayoutDashboard, path: '/dashboard' },
         { name: 'Analyze Risk', icon: Activity, path: '/analysis' },
+        { name: 'Academic Goals', icon: Target, path: '/academic-goals' },
+        { name: 'Analysis History', icon: History, path: '/analysis-history' },
         { name: 'Reports', icon: FileText, path: '/reports' },
         { name: 'Profile', icon: User, path: '/profile' },
         { name: 'Settings', icon: Settings, path: '/settings' },
     ];
 
-    const handleLogout = () => {
-        // Implement logout logic here
+    const handleLogout = async () => {
+        try {
+            await signOut(auth);
+        } catch (error) {
+            console.error('Firebase sign out error:', error);
+        }
         localStorage.removeItem('token');
         localStorage.removeItem('user');
         window.location.href = '/login';
@@ -41,9 +49,9 @@ const Sidebar = ({ isOpen, onClose, className = '' }) => {
                         to={item.path}
                         onClick={() => window.innerWidth < 768 && onClose()}
                         className={({ isActive }) => `
-              flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 font-medium
+              flex items-center gap-3 px-4 py-3 rounded-2xl transition-all duration-300 font-medium
               ${isActive
-                                ? 'bg-primary text-white shadow-lg shadow-primary/30'
+                                ? 'bg-primary/10 text-primary shadow-sm'
                                 : 'text-text-secondary hover:bg-gray-50 hover:text-primary'}
             `}
                     >
@@ -56,7 +64,7 @@ const Sidebar = ({ isOpen, onClose, className = '' }) => {
             <div className="p-4 border-t border-gray-100">
                 <button
                     onClick={handleLogout}
-                    className="flex items-center gap-3 px-4 py-3 w-full rounded-xl text-danger hover:bg-danger/10 transition-colors duration-300 font-medium"
+                    className="flex items-center gap-3 px-4 py-3 w-full rounded-2xl text-danger hover:bg-danger/10 hover:text-danger hover:ring-1 hover:ring-danger/20 transition-all duration-300 font-medium"
                 >
                     <LogOut size={20} />
                     <span>Logout</span>

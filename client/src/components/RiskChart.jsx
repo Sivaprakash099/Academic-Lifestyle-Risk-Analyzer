@@ -7,11 +7,11 @@ const RiskChart = ({ riskScore }) => {
             name: 'Risk Score',
             uv: riskScore,
             pv: 2400,
-            fill: riskScore > 60 ? '#EF4444' : riskScore > 30 ? '#F59E0B' : '#10B981',
+            fill: riskScore > 6 ? '#EF4444' : riskScore > 3 ? '#F59E0B' : '#10B981',
         },
         {
             name: 'Max Risk',
-            uv: 100,
+            uv: 9,
             pv: 4567,
             fill: '#E5E7EB',
         },
@@ -40,8 +40,8 @@ const RiskChart = ({ riskScore }) => {
                 </RadialBarChart>
             </ResponsiveContainer>
             <div className="text-center mt-[-10px]">
-                <span className={`text-2xl font-bold ${riskScore > 60 ? 'text-red-500' : riskScore > 30 ? 'text-yellow-500' : 'text-green-500'}`}>
-                    {riskScore}/100
+                <span className={`text-2xl font-bold ${riskScore > 6 ? 'text-red-500' : riskScore > 3 ? 'text-yellow-500' : 'text-green-500'}`}>
+                    {riskScore}/9
                 </span>
             </div>
         </div>

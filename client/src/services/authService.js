@@ -19,8 +19,7 @@ const login = async (userData) => {
 };
 
 const logout = () => {
-    localStorage.removeItem('user');
-    localStorage.removeItem('token');
+    localStorage.clear();
 };
 
 const getCurrentUser = () => {

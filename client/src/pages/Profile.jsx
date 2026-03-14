@@ -1,13 +1,28 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { User, Mail, BookOpen, Clock, Save } from 'lucide-react';
 import Card from '../components/ui/Card';
 import Input from '../components/ui/Input';
 import Button from '../components/ui/Button';
 import { toast } from 'react-hot-toast';
+import API from '../services/api';
 
 export default function Profile() {
     const [user, setUser] = useState(JSON.parse(localStorage.getItem('user') || '{}'));
     const [isLoading, setIsLoading] = useState(false);
+
+    // Load initial data from API or localStorage
+    useEffect(() => {
+        const fetchUserData = async () => {
+            try {
+                const response = await API.get('/auth/me');
+                setUser(response.data);
+                localStorage.setItem('user', JSON.stringify(response.data));
+            } catch (error) {
+                console.error("Failed to fetch current user:", error);
+            }
+        };
+        fetchUserData();
+    }, []);
 
     const handleChange = (e) => {
         setUser({ ...user, [e.target.name]: e.target.value });
@@ -16,12 +31,22 @@ export default function Profile() {
     const handleSave = async (e) => {
         e.preventDefault();
         setIsLoading(true);
-        // Simulate API save
-        setTimeout(() => {
-            localStorage.setItem('user', JSON.stringify(user));
-            toast.success("Profile updated successfully!");
+        try {
+            const response = await API.put('/auth/profile', {
+                course: user.course,
+                year: user.year
+            });
+            
+            // Update local storage to persist across sessions
+            localStorage.setItem('user', JSON.stringify(response.data));
+            setUser(response.data);
+            toast.success("Profile updated successfully.");
+        } catch (error) {
+            console.error("Profile Update Error:", error);
+            toast.error(error.response?.data?.message || "Failed to update profile");
+        } finally {
             setIsLoading(false);
-        }, 1000);
+        }
     };
 
     return (
@@ -54,15 +79,16 @@ export default function Profile() {
 
                         <form onSubmit={handleSave} className="space-y-4">
                             <Input
-                                label="Full Name"
+                                label="Full Name (Read-Only)"
                                 id="name"
                                 name="name"
                                 value={user.name || ''}
                                 onChange={handleChange}
-                                placeholder="Enter your full name"
+                                disabled
+                                className="bg-gray-50 cursor-not-allowed"
                             />
                             <Input
-                                label="Email"
+                                label="Email (Read-Only)"
                                 id="email"
                                 name="email"
                                 value={user.email || ''}
@@ -93,7 +119,7 @@ export default function Profile() {
                             <div className="pt-4 flex justify-end">
                                 <Button type="submit" isLoading={isLoading}>
                                     <Save size={18} className="mr-2" />
-                                    Save Changes
+                                    Save Profile
                                 </Button>
                             </div>
                         </form>

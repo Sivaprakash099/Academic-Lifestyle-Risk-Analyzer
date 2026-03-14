@@ -11,10 +11,34 @@ import Loader from '../components/ui/Loader';
 import { toast } from 'react-hot-toast';
 import API from '../services/api';
 
+const getRecommendationIcon = (suggestion) => {
+    if (suggestion.includes('study')) return <BookOpen size={18} />;
+    if (suggestion.includes('sleep')) return <Moon size={18} />;
+    if (suggestion.includes('stress')) return <Activity size={18} />;
+    if (suggestion.includes('attendance')) return <CalendarCheck size={18} />;
+    return <CheckCircle size={18} />;
+};
+
+const getRecommendationColor = (suggestion) => {
+    if (suggestion.includes('Great job') || suggestion.includes('excellent')) return { bg: 'bg-green-100', text: 'text-green-600' };
+    if (suggestion.includes('study')) return { bg: 'bg-blue-100', text: 'text-blue-600' };
+    if (suggestion.includes('sleep')) return { bg: 'bg-indigo-100', text: 'text-indigo-600' };
+    if (suggestion.includes('stress')) return { bg: 'bg-purple-100', text: 'text-purple-600' };
+    if (suggestion.includes('attendance')) return { bg: 'bg-orange-100', text: 'text-orange-600' };
+    return { bg: 'bg-indigo-100', text: 'text-indigo-600' };
+};
+
+const stressOptions = [
+    { value: 'Low', label: 'Low - I feel relaxed' },
+    { value: 'Medium', label: 'Medium - Occasional stress' },
+    { value: 'High', label: 'High - Frequently overwhelmed' },
+];
+
 export default function RiskAnalysis() {
     const navigate = useNavigate();
     const [step, setStep] = useState(1);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
+    const [analysisData, setAnalysisData] = useState(null);
     const [result, setResult] = useState(null);
 
     const [formData, setFormData] = useState({
@@ -26,41 +50,26 @@ export default function RiskAnalysis() {
         assignmentCompletion: 'Always',
     });
 
-    const handleChange = (e) => {
-        setFormData({ ...formData, [e.target.name]: e.target.value });
-    };
+    const handleChange = React.useCallback((e) => {
+        setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
+    }, []);
 
     const calculateRisk = async () => {
         setIsAnalyzing(true);
         try {
-            // Using centralized API service which handles token and baseURL
             const response = await API.post('/risk/analyze', formData);
-
-            // Fetch the updated dashboard data to get the new risk score
-            // The backend calculation updates the user's risk profile
-            const dashResponse = await API.get('/dashboard');
-
-            // Extract the current risk score from the dashboard response
-            const currentRisk = dashResponse.data.currentRisk || 0; // Fallback to 0 if undefined
-
-            setResult(currentRisk);
+            setAnalysisData(response.data);
+            setResult(response.data.riskScore);
+            toast.success("Analysis complete!");
             setStep(2);
-
         } catch (error) {
             console.error(error);
-            // Handle Axios error structure
             const message = error.response?.data?.message || error.message || "Analysis failed";
             toast.error(message);
         } finally {
             setIsAnalyzing(false);
         }
     };
-
-    const stressOptions = [
-        { value: 'Low', label: 'Low - I feel relaxed' },
-        { value: 'Medium', label: 'Medium - Occasional stress' },
-        { value: 'High', label: 'High - Frequently overwhelmed' },
-    ];
 
     if (isAnalyzing) {
         return <div className="flex h-[60vh] items-center justify-center"><Loader text="Analyzing your lifestyle habits..." /></div>;
@@ -78,7 +87,7 @@ export default function RiskAnalysis() {
                         <h1 className="text-3xl font-bold text-gray-900">Analysis Complete</h1>
                         <p className="text-gray-500 mt-1">Here is your updated risk profile based on your inputs.</p>
                     </div>
-                    <Button variant="secondary" onClick={() => { setStep(1); setResult(null); }}>
+                    <Button variant="secondary" onClick={() => { setStep(1); setResult(null); setAnalysisData(null); }}>
                         New Analysis
                     </Button>
                 </div>
@@ -121,40 +130,24 @@ export default function RiskAnalysis() {
                         <Card className="bg-gradient-to-br from-indigo-50 to-white border-indigo-100">
                             <h3 className="text-lg font-bold text-gray-800 mb-4">Key Recommendations</h3>
                             <ul className="space-y-4">
-                                {result > 50 ? (
-                                    <>
-                                        <li className="flex gap-4 items-start">
-                                            <div className="p-2 bg-red-100 rounded-lg text-red-600 flex-shrink-0">
-                                                <AlertTriangle size={18} />
+                                {analysisData?.suggestions?.map((suggestion, index) => {
+                                    const colors = getRecommendationColor(suggestion);
+                                    return (
+                                        <li key={index} className="flex gap-4 items-start">
+                                            <div className={`p-2 ${colors.bg} rounded-lg ${colors.text} flex-shrink-0`}>
+                                                {getRecommendationIcon(suggestion)}
                                             </div>
                                             <div>
-                                                <p className="font-semibold text-gray-900">Break Down Study Sessions</p>
-                                                <p className="text-sm text-gray-600 mt-1">Long study hours without breaks can lead to burnout. Try the Pomodoro technique (25m work / 5m break).</p>
+                                                <p className="text-sm text-gray-700 font-medium">{suggestion}</p>
                                             </div>
                                         </li>
-                                        <li className="flex gap-4 items-start">
-                                            <div className="p-2 bg-orange-100 rounded-lg text-orange-600 flex-shrink-0">
-                                                <Moon size={18} />
-                                            </div>
-                                            <div>
-                                                <p className="font-semibold text-gray-900">Prioritize Sleep Hygiene</p>
-                                                <p className="text-sm text-gray-600 mt-1">Your sleep hours are critical for memory retention. Aim for consistent wake and sleep times.</p>
-                                            </div>
-                                        </li>
-                                    </>
-                                ) : (
-                                    <li className="flex gap-4 items-start">
-                                        <div className="p-2 bg-green-100 rounded-lg text-green-600 flex-shrink-0">
-                                            <CheckCircle size={18} />
-                                        </div>
-                                        <div>
-                                            <p className="font-semibold text-gray-900">Maintain Your Routine</p>
-                                            <p className="text-sm text-gray-600 mt-1">You're doing great! Keep up the balanced approach to study and rest.</p>
-                                        </div>
-                                    </li>
-                                )}
+                                    );
+                                })}
                             </ul>
-                            <div className="mt-8 pt-6 border-t border-indigo-100 flex justify-end">
+                            <div className="mt-8 pt-6 border-t border-indigo-100 flex justify-end gap-4">
+                                <Button variant="secondary" onClick={() => navigate('/analysis-history')}>
+                                    View History
+                                </Button>
                                 <Button onClick={() => navigate('/dashboard')}>
                                     Go to Dashboard <ArrowRight size={18} className="ml-2" />
                                 </Button>

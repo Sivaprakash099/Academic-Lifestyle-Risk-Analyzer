@@ -1,5 +1,6 @@
 /** @type {import('tailwindcss').Config} */
 export default {
+  darkMode: 'class',
   content: [
     "./index.html",
     "./src/**/*.{js,ts,jsx,tsx}",
@@ -8,21 +9,29 @@ export default {
     extend: {
       colors: {
         primary: {
-          DEFAULT: "#4F46E5", // Indigo-600
-          hover: "#4338CA", // Indigo-700
-          light: "#818CF8", // Indigo-400
+          DEFAULT: "#5b5bd6", // Purple gradient start
+          hover: "#4f4fbd",
+          light: "#8282e3",
         },
         secondary: {
-          DEFAULT: "#8B5CF6", // Violet-500
-          hover: "#7C3AED", // Violet-600
+          DEFAULT: "#7c3aed", // Violet gradient end
+          hover: "#6d28d9",
         },
         success: {
-          DEFAULT: "#10B981", // Emerald-500
-          light: "#D1FAE5", // Emerald-100
+          DEFAULT: "#10B981", // Green for positive
+          light: "#D1FAE5",
+        },
+        danger: {
+          DEFAULT: "#EF4444", // Red for negative
+          light: "#FEE2E2",
+        },
+        analytics: {
+          DEFAULT: "#8B5CF6", // Purple for analytics
+          light: "#EDE9FE",
         },
         warning: {
-          DEFAULT: "#F59E0B", // Amber-500
-          light: "#FEF3C7", // Amber-100
+          DEFAULT: "#F59E0B", // Amber
+          light: "#FEF3C7",
         },
         danger: {
           DEFAULT: "#EF4444", // Red-500
@@ -53,9 +62,9 @@ export default {
         '3xl': '2rem',
       },
       boxShadow: {
-        'soft': '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
-        'card': '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
-        'glow': '0 0 15px rgba(79, 70, 229, 0.3)',
+        'soft': '0 4px 20px -2px rgba(0, 0, 0, 0.04)',
+        'card': '0 8px 30px rgba(0, 0, 0, 0.04)',
+        'glow': '0 0 15px rgba(91, 91, 214, 0.25)',
       },
       animation: {
         'fade-in': 'fadeIn 0.5s ease-out',

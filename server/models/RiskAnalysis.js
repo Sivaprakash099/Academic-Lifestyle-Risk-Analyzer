@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 
-const riskResultSchema = new mongoose.Schema({
-    user: {
+const riskAnalysisSchema = new mongoose.Schema({
+    userId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
         required: true,
@@ -20,13 +20,18 @@ const riskResultSchema = new mongoose.Schema({
         required: true,
     },
     suggestions: {
-        type: [String], // Array of suggestion strings
+        type: [String],
         default: []
     },
+    // Snapshots for immutable history
+    studyHours: { type: Number },
+    sleepHours: { type: Number },
+    stressLevel: { type: String },
+    attendance: { type: Number },
     createdAt: {
         type: Date,
         default: Date.now,
     }
 });
 
-module.exports = mongoose.model('RiskResult', riskResultSchema);
+module.exports = mongoose.model('RiskAnalysis', riskAnalysisSchema);

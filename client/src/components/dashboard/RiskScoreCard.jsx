@@ -5,21 +5,22 @@ import Badge from '../ui/Badge';
 
 export default function RiskScoreCard({ riskScore = 0 }) {
     const getRiskLevel = (score) => {
-        if (score <= 30) return { level: 'Low', variant: 'success', color: 'text-success', stroke: '#10B981' };
-        if (score <= 70) return { level: 'Medium', variant: 'warning', color: 'text-warning', stroke: '#F59E0B' };
-        return { level: 'High', variant: 'danger', color: 'text-danger', stroke: '#EF4444' };
+        if (score >= 7) return { level: 'High Risk', variant: 'danger', color: 'text-[#ef4444]', stroke: '#ef4444' };
+        if (score >= 4) return { level: 'Medium Risk', variant: 'warning', color: 'text-[#f59e0b]', stroke: '#f59e0b' };
+        return { level: 'Low Risk', variant: 'success', color: 'text-[#22c55e]', stroke: '#22c55e' };
     };
 
     const { level, variant, color, stroke } = getRiskLevel(riskScore);
     const radius = 60;
     const circumference = 2 * Math.PI * radius;
-    const offset = circumference - (riskScore / 100) * circumference;
+    // Normalize based on max possible normalized score (9)
+    const offset = circumference - (Math.min(riskScore, 9) / 9) * circumference;
 
     return (
         <Card className="flex flex-col items-center justify-center p-6 h-full relative overflow-hidden group hover:shadow-card transition-all duration-300">
             <div className="flex items-center justify-between w-full mb-6">
                 <h3 className="text-lg font-bold text-text-primary">Current Risk</h3>
-                <Badge variant={variant}>{level} Risk</Badge>
+                <Badge variant={variant}>{level}</Badge>
             </div>
 
             <div className="relative w-48 h-48 flex items-center justify-center mb-6">
@@ -53,14 +54,18 @@ export default function RiskScoreCard({ riskScore = 0 }) {
 
                 <div className="flex flex-col items-center z-10 animate-fade-in">
                     <span className={`text-5xl font-bold ${color}`}>{riskScore}</span>
-                    <span className="text-xs text-text-muted font-medium uppercase tracking-wider mt-1">Score</span>
                 </div>
             </div>
 
+            <div className="text-center mt-6">
+                <Badge variant={variant} className="text-sm px-4 py-1.5 shadow-sm">
+                    {level}
+                </Badge>
+            </div>
             <p className="text-center text-text-secondary text-sm px-4 leading-relaxed">
-                {level === 'High'
+                {level.includes('High')
                     ? "Immediate attention needed. Review your study and lifestyle habits."
-                    : level === 'Medium'
+                    : level.includes('Medium')
                         ? "Moderate risk detected. Consistency is key to improvement."
                         : "Great work! You are maintaining a healthy academic balance."}
             </p>

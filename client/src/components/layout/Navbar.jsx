@@ -1,13 +1,30 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Bell, Menu, User, ChevronDown, LogOut, Settings, UserCircle } from 'lucide-react';
+import { Bell, Menu, User, ChevronDown, LogOut, Settings, UserCircle, Sun, Moon } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 const Navbar = ({ onMenuClick }) => {
     const [userData, setUserData] = useState(null);
     const [loading, setLoading] = useState(true);
     const [dropdownOpen, setDropdownOpen] = useState(false);
+    
+    // Check local storage or system preference for dark mode
+    const [isDarkMode, setIsDarkMode] = useState(() => {
+        const savedMode = localStorage.getItem('darkMode');
+        return savedMode === 'true' || (!savedMode && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    });
+    
     const navigate = useNavigate();
+
+    useEffect(() => {
+        if (isDarkMode) {
+            document.documentElement.classList.add('dark');
+            localStorage.setItem('darkMode', 'true');
+        } else {
+            document.documentElement.classList.remove('dark');
+            localStorage.setItem('darkMode', 'false');
+        }
+    }, [isDarkMode]);
 
     useEffect(() => {
         const fetchUser = async () => {
@@ -73,6 +90,14 @@ const Navbar = ({ onMenuClick }) => {
             </div>
 
             <div className="flex items-center gap-4">
+                <button 
+                    onClick={() => setIsDarkMode(!isDarkMode)}
+                    className="relative p-2 text-text-muted hover:text-secondary transition-colors rounded-full hover:bg-dark-light"
+                    title={isDarkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+                >
+                    {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
+                </button>
+            
                 <button className="relative p-2 text-text-muted hover:text-secondary transition-colors rounded-full hover:bg-dark-light">
                     <Bell size={20} />
                     <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-secondary rounded-full ring-2 ring-dark"></span>

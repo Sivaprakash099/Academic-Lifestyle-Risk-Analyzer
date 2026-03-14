@@ -1,4 +1,4 @@
-const RiskResult = require('../models/RiskResult');
+const RiskAnalysis = require('../models/RiskAnalysis');
 const Lifestyle = require('../models/Lifestyle');
 const Dashboard = require('../models/Dashboard');
 
@@ -12,11 +12,19 @@ const Dashboard = require('../models/Dashboard');
 // @access  Private
 const analyzeRisk = async (req, res) => {
     // 1. Accept Lifestyle Data Directly
-    const { studyHours, sleepHours, stressLevel, attendance } = req.body;
+    console.log("Analyze Risk: Received Body -", req.body);
+    
+    let { studyHours, sleepHours, stressLevel, attendance } = req.body;
+    
+    // Explicitly parse to Number to avoid 0/string issues
+    studyHours = Number(studyHours);
+    sleepHours = Number(sleepHours);
+    attendance = Number(attendance);
 
     try {
-        if (studyHours === undefined || sleepHours === undefined || !stressLevel || attendance === undefined) {
-            return res.status(400).json({ message: 'Please provide all lifestyle data fields' });
+        if (isNaN(studyHours) || isNaN(sleepHours) || !stressLevel || isNaN(attendance)) {
+            console.warn("Analyze Risk: Validation Failed", { studyHours, sleepHours, stressLevel, attendance });
+            return res.status(400).json({ message: 'Please provide all lifestyle data fields as valid numbers' });
         }
 
         // 2. Create Lifestyle Document (for record keeping)
@@ -30,68 +38,70 @@ const analyzeRisk = async (req, res) => {
             activityLevel: 'Moderate' // Default or add to input
         });
 
-        // 3. Rule-Based Logic (Same as before but using variables)
-        let riskScore = 0;
-        let suggestions = [];
+        // 3. Precise Scoring Logic (Step 1 & 2)
+        let studyScore = 0;
+        if (studyHours > 6) studyScore = 0;
+        else if (studyHours >= 4) studyScore = 3;
+        else if (studyHours >= 2) studyScore = 6;
+        else studyScore = 9;
 
-        // Study Hours Logic
-        if (studyHours < 3) {
-            riskScore += 20;
-            suggestions.push('Increase study time to at least 3-4 hours daily.');
-        } else {
-            suggestions.push('Great job maintaining good study hours!');
-        }
+        let sleepScore = 0;
+        if (sleepHours >= 7 && sleepHours <= 8) sleepScore = 0;
+        else if (sleepHours >= 5) sleepScore = 4;
+        else sleepScore = 8;
 
-        // Sleep Hours Logic
-        if (sleepHours < 6) {
-            riskScore += 20;
-            suggestions.push('Prioritize sleep. Aim for 7-8 hours.');
-        } else if (sleepHours > 9) {
-            suggestions.push('Try to wake up earlier to be more productive.');
-        } else {
-            suggestions.push('Your sleep schedule looks healthy.');
-        }
+        let stressScore = 0;
+        if (stressLevel === 'Low') stressScore = 2;
+        else if (stressLevel === 'Medium') stressScore = 5;
+        else stressScore = 8;
 
-        // Stress Level Logic
-        if (stressLevel === 'High') {
-            riskScore += 25;
-            suggestions.push('Practice mindfulness to manage high stress.');
-        } else if (stressLevel === 'Medium') {
-            suggestions.push('Monitor your stress levels.');
-        }
+        let attendanceScore = 0;
+        if (attendance > 90) attendanceScore = 0;
+        else if (attendance >= 75) attendanceScore = 3;
+        else if (attendance >= 60) attendanceScore = 6;
+        else attendanceScore = 9;
 
-        // Attendance Logic
-        if (attendance < 75) {
-            riskScore += 25;
-            suggestions.push('Improve attendance to avoid academic penalties.');
-        }
+        const totalRiskScoreValue = studyScore + sleepScore + stressScore + attendanceScore;
 
-        // Cap Risk Score
-        riskScore = Math.min(riskScore, 100);
+        // Step 3: Normalize Risk Score (0-9 Scale)
+        // Normalized = (Total / 34) * 9, rounded to nearest whole number
+        const normalizedScore = Math.round((totalRiskScoreValue / 34) * 9);
 
-        // Determine Risk Level
+        // Step 4: Risk Level Classification
         let riskLevel = 'Low Risk';
-        if (riskScore > 60) {
-            riskLevel = 'High Risk';
-            suggestions.unshift('Urgent: Lifestyle habits indicate high risk.');
-        } else if (riskScore > 30) {
-            riskLevel = 'Medium Risk';
-            suggestions.unshift('Warning: Some habits need improvement.');
-        } else {
-            suggestions.unshift('Excellent: Low-risk, healthy academic lifestyle.');
+        if (normalizedScore >= 7) riskLevel = 'High Risk';
+        else if (normalizedScore >= 4) riskLevel = 'Medium Risk';
+        else riskLevel = 'Low Risk';
+
+        const totalRiskScore = normalizedScore; // Use normalized score for storage and display
+
+        // Suggestions based on user requirements
+        let suggestions = [];
+        if (studyHours < 4) suggestions.push('Increase study time to at least 4–6 hours daily.');
+        if (sleepHours < 6) suggestions.push('Improve sleep schedule and aim for 7–8 hours of sleep.');
+        if (stressLevel === 'High') suggestions.push('Practice stress management such as exercise, meditation, or breaks.');
+        if (attendance < 75) suggestions.push('Improve class attendance to maintain academic performance.');
+        
+        if (riskLevel === 'Low Risk' && suggestions.length === 0) {
+            suggestions.push('Great job! Your academic lifestyle is healthy. Maintain your current study habits, sleep schedule, and attendance.');
+        } else if (suggestions.length === 0) {
+            suggestions.push('Keep up the consistent effort and look for minor improvements.');
         }
 
-        // 4. Save Risk Result
-        const riskResult = await RiskResult.create({
-            user: req.user._id,
+        // 4. Save Risk Analysis with direct snapshots
+        const riskResult = await RiskAnalysis.create({
+            userId: req.user._id,
             lifestyleDisplay: lifestyle._id,
-            riskScore,
-            riskLevel,
-            suggestions
+            riskScore: totalRiskScore,
+            riskLevel: riskLevel,
+            suggestions,
+            studyHours,
+            sleepHours,
+            stressLevel,
+            attendance
         });
 
         // 5. ATOMIC DASHBOARD UPDATE
-        // This is the core requirement: Dashboard updates immediately
         const updatedDashboard = await Dashboard.findOneAndUpdate(
             { user: req.user._id },
             {
@@ -100,21 +110,22 @@ const analyzeRisk = async (req, res) => {
                     "stats.sleepHours": sleepHours,
                     "stats.stressLevel": stressLevel,
                     "stats.attendance": attendance,
-                    currentRisk: riskScore,
+                    currentRisk: totalRiskScore,
                     lastUpdated: Date.now()
                 },
                 $push: {
                     history: {
                         $each: [{
                             date: Date.now(),
-                            riskScore: riskScore,
-                            breakdown: { studyHours, sleepHours }
+                            riskScore: totalRiskScore,
+                            riskLevel: riskLevel, // Added riskLevel to history
+                            breakdown: { studyHours, sleepHours, stressLevel, attendance } // More detailed breakdown
                         }],
-                        $position: 0 // Add to TOP of array
+                        $position: 0
                     }
                 }
             },
-            { new: true, upsert: true } // Create if doesn't exist (safety)
+            { new: true, upsert: true }
         );
 
         res.json(riskResult);
@@ -130,7 +141,7 @@ const analyzeRisk = async (req, res) => {
 // @access  Private
 const getLatestRisk = async (req, res) => {
     try {
-        const latestRisk = await RiskResult.findOne({ user: req.user._id }).sort({ createdAt: -1 }).populate('lifestyleDisplay');
+        const latestRisk = await RiskAnalysis.findOne({ userId: req.user._id }).sort({ createdAt: -1 }).populate('lifestyleDisplay');
         res.json(latestRisk);
     } catch (error) {
         res.status(500).json({ message: error.message });

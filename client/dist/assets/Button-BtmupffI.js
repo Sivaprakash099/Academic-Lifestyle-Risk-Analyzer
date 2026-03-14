@@ -1,0 +1,6 @@
+import{j as r}from"./vendor-CHOdf4FO.js";import{c}from"./index-nQSi578P.js";/**
+ * @license lucide-react v0.323.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */const x=c("Loader2",[["path",{d:"M21 12a9 9 0 1 1-6.219-8.56",key:"13zald"}]]),g=({children:t,variant:a="primary",size:s="md",className:o="",isLoading:e=!1,disabled:i=!1,type:d="button",...n})=>{const m="inline-flex items-center justify-center font-medium rounded-xl transition-all duration-300 active:scale-95 disabled:opacity-70 disabled:cursor-not-allowed disabled:active:scale-100",l={primary:"bg-primary hover:bg-primary-hover text-white shadow-lg shadow-primary/30",secondary:"bg-white hover:bg-gray-50 text-text-primary border border-gray-200",outline:"border-2 border-primary text-primary hover:bg-primary/5",danger:"bg-danger hover:bg-red-600 text-white shadow-lg shadow-danger/30",ghost:"text-text-secondary hover:bg-gray-100 hover:text-text-primary"},p={sm:"text-sm py-1.5 px-3",md:"text-base py-2.5 px-5",lg:"text-lg py-3 px-6",icon:"p-2"};return r.jsxs("button",{type:d,className:`${m} ${l[a]} ${p[s]} ${o}`,disabled:i||e,...n,children:[e&&r.jsx(x,{className:"w-4 h-4 mr-2 animate-spin"}),t]})};export{g as B,x as L};

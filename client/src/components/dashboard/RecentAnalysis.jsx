@@ -5,10 +5,12 @@ import Badge from '../ui/Badge';
 import { Link } from 'react-router-dom';
 
 export default function RecentAnalysis({ history = [] }) {
-    const getRiskVariant = (score) => {
-        if (score <= 30) return 'success';
-        if (score <= 70) return 'warning';
-        return 'danger';
+    const getRiskVariant = (level) => {
+        if (!level) return 'success';
+        if (level.includes('Very High')) return 'danger';
+        if (level.includes('High')) return 'danger';
+        if (level.includes('Medium')) return 'warning';
+        return 'success';
     };
 
     return (
@@ -28,20 +30,18 @@ export default function RecentAnalysis({ history = [] }) {
                     </div>
                 ) : (
                     history.slice(0, 5).map((item, index) => (
-                        <div key={index} className="flex items-center justify-between p-3 rounded-xl hover:bg-gray-50 transition-colors border border-transparent hover:border-gray-100 group">
+                        <div key={index} className="flex items-center justify-between p-3 rounded-xl border border-gray-100 dark:border-gray-800 bg-white dark:bg-dark-lighter hover:shadow-soft transition-all group">
                             <div className="flex items-center gap-4">
-                                <div className={`w-1.5 h-10 rounded-full ${item.riskScore > 70 ? 'bg-red-500' : item.riskScore > 30 ? 'bg-yellow-500' : 'bg-green-500'
-                                    }`} />
                                 <div>
-                                    <p className="font-semibold text-gray-800 text-sm">Risk Assessment</p>
-                                    <p className="text-xs text-gray-500 flex items-center gap-1 mt-0.5">
-                                        <Clock size={10} /> {new Date(item.date).toLocaleDateString()}
+                                    <p className="font-semibold text-text-primary text-sm">{item.riskLevel || 'Risk Assessment'}</p>
+                                    <p className="text-xs text-text-muted flex items-center gap-1 mt-0.5 font-medium tracking-wide">
+                                        <Clock size={12} className="opacity-70" /> {new Date(item.date).toLocaleDateString()}
                                     </p>
                                 </div>
                             </div>
                             <div className="text-right">
-                                <Badge variant={getRiskVariant(item.riskScore)} className="mb-1">
-                                    {item.riskScore}% Risk
+                                <Badge variant={getRiskVariant(item.riskLevel)} className="shadow-sm">
+                                    Score: {item.riskScore}
                                 </Badge>
                             </div>
                         </div>

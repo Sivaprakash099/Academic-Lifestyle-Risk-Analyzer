@@ -20,6 +20,11 @@ const dashboardSchema = new mongoose.Schema({
         completedSemesters: { type: Number, default: 0 },
         lastUpdated: { type: Date, default: Date.now }
     },
+    goals: {
+        targetStudyHours: { type: Number, default: 0 },
+        targetSleepHours: { type: Number, default: 0 },
+        targetAttendance: { type: Number, default: 0 }
+    },
     currentRisk: {
         type: Number,
         default: 0

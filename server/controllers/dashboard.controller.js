@@ -27,6 +27,11 @@ const getDashboard = async (req, res) => {
                     totalSemesters: 8,
                     completedSemesters: 0
                 },
+                goals: {
+                    targetStudyHours: 0,
+                    targetSleepHours: 0,
+                    targetAttendance: 0
+                },
                 currentRisk: 0,
                 history: []
             });
@@ -41,6 +46,11 @@ const getDashboard = async (req, res) => {
             },
             stats: dashboard.stats,
             cgpa: dashboard.cgpa,
+            goals: dashboard.goals || {
+                targetStudyHours: 0,
+                targetSleepHours: 0,
+                targetAttendance: 0
+            },
             currentRisk: dashboard.currentRisk,
             history: dashboard.history
         });
@@ -85,7 +95,40 @@ const updateCGPA = async (req, res) => {
     }
 };
 
+// @desc    Update Academic Goals
+// @route   PUT /api/dashboard/goals
+// @access  Private
+const updateGoals = async (req, res) => {
+    try {
+        const { targetStudyHours, targetSleepHours, targetAttendance } = req.body;
+
+        const updatedDashboard = await Dashboard.findOneAndUpdate(
+            { user: req.user.id },
+            {
+                $set: {
+                    goals: {
+                        targetStudyHours,
+                        targetSleepHours,
+                        targetAttendance
+                    }
+                }
+            },
+            { new: true }
+        );
+
+        if (!updatedDashboard) {
+            return res.status(404).json({ message: 'Dashboard not found' });
+        }
+
+        res.json(updatedDashboard.goals);
+    } catch (error) {
+        console.error("Goals Update Error:", error);
+        res.status(500).json({ message: 'Server Error updating Goals' });
+    }
+};
+
 module.exports = {
     getDashboard,
-    updateCGPA
+    updateCGPA,
+    updateGoals
 };

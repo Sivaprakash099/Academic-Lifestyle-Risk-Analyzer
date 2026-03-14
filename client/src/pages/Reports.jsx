@@ -1,31 +1,33 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { BookOpen, Moon, Activity, TrendingUp, AlertTriangle, CheckCircle, RefreshCw, Download, RotateCcw, Trash2, Eye } from 'lucide-react';
+import { TrendingUp, AlertTriangle, RefreshCw, Download, Trash2 } from 'lucide-react';
 import API from '../services/api';
 import { useNavigate } from 'react-router-dom';
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
 import Badge from '../components/ui/Badge';
-import Modal from '../components/ui/Modal'; // Use the new Modal component
+import Modal from '../components/ui/Modal';
 import { toast } from 'react-hot-toast';
+import html2canvas from 'html2canvas';
+import jsPDF from 'jspdf';
 
 export default function Reports() {
     const [data, setData] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [showClearModal, setShowClearModal] = useState(false);
+    const [isExporting, setIsExporting] = useState(false);
+    
+    const chartRef = useRef(null);
     const navigate = useNavigate();
 
-    const fetchReports = async () => {
+    const fetchReports = React.useCallback(async () => {
         setLoading(true);
         setError(null);
         try {
             const res = await API.get('/reports');
             setData(res.data);
-            if (res.data.riskHistory.length > 0) {
-                // Optional: toast success
-            }
         } catch (err) {
             console.error("Reports Fetch Error:", err);
             if (err.response && err.response.status === 401) {
@@ -36,36 +38,132 @@ export default function Reports() {
         } finally {
             setLoading(false);
         }
-    };
+    }, []);
 
     useEffect(() => {
         fetchReports();
-    }, []);
+    }, [fetchReports]);
 
-    const handleExport = () => {
-        toast.success("Report downloaded successfully (Demo)", { icon: '📥' });
-    };
+    const handleExport = React.useCallback(async () => {
+        if (!data || data.riskHistory.length === 0) return;
+        
+        setIsExporting(true);
+        const toastId = toast.loading("Preparing your report...");
+        
+        try {
+            const chartElement = chartRef.current;
+            const canvas = await html2canvas(chartElement, {
+                scale: 2,
+                useCORS: true,
+                backgroundColor: '#ffffff'
+            });
+            const chartImage = canvas.toDataURL('image/png');
 
-    const handleClearHistory = async () => {
+            const pdf = new jsPDF('p', 'mm', 'a4');
+            const pageWidth = pdf.internal.pageSize.getWidth();
+            
+            pdf.setFontSize(22);
+            pdf.setTextColor(79, 70, 229);
+            pdf.text("Academic Risk Analysis Report", pageWidth / 2, 20, { align: 'center' });
+            
+            pdf.setFontSize(12);
+            pdf.setTextColor(100, 116, 139);
+            pdf.text(`Generated on: ${new Date().toLocaleString()}`, pageWidth / 2, 28, { align: 'center' });
+
+            pdf.setFontSize(16);
+            pdf.setTextColor(30, 41, 59);
+            pdf.text("Risk Trend Analysis", 20, 45);
+            
+            const imgWidth = 170;
+            const imgHeight = (canvas.height * imgWidth) / canvas.width;
+            pdf.addImage(chartImage, 'PNG', 20, 50, imgWidth, imgHeight);
+
+            let yPos = 50 + imgHeight + 20;
+            
+            pdf.setFontSize(16);
+            pdf.text("Recent Analysis Records", 20, yPos);
+            yPos += 10;
+
+            pdf.setFontSize(10);
+            pdf.setTextColor(255, 255, 255);
+            pdf.setFillColor(79, 70, 229);
+            pdf.rect(20, yPos, 170, 8, 'F');
+            
+            pdf.text("Date", 22, yPos + 5);
+            pdf.text("Study", 55, yPos + 5);
+            pdf.text("Sleep", 75, yPos + 5);
+            pdf.text("Stress", 95, yPos + 5);
+            pdf.text("Attendance", 120, yPos + 5);
+            pdf.text("Score", 155, yPos + 5);
+            pdf.text("Level", 170, yPos + 5);
+            
+            yPos += 8;
+
+            pdf.setTextColor(30, 41, 59);
+            data.riskHistory.slice(0, 10).forEach((item, index) => {
+                if (yPos > 270) {
+                    pdf.addPage();
+                    yPos = 20;
+                }
+                
+                if (index % 2 === 0) {
+                    pdf.setFillColor(248, 250, 252);
+                    pdf.rect(20, yPos, 170, 8, 'F');
+                }
+                
+                const dateStr = new Date(item.date).toLocaleDateString();
+                pdf.text(dateStr, 22, yPos + 5);
+                pdf.text(`${item.studyHours}h`, 55, yPos + 5);
+                pdf.text(`${item.sleepHours}h`, 75, yPos + 5);
+                pdf.text(item.stressLevel, 95, yPos + 5);
+                pdf.text(`${item.attendance}%`, 120, yPos + 5);
+                pdf.text(item.riskScore.toString(), 155, yPos + 5);
+                pdf.text(item.riskLevel.split(' ')[0], 170, yPos + 5);
+                
+                yPos += 8;
+            });
+
+            pdf.setFontSize(8);
+            pdf.setTextColor(148, 163, 184);
+            pdf.text("Academic Lifestyle Risk Analyzer © 2026", pageWidth / 2, 285, { align: 'center' });
+
+            pdf.save("Academic_Risk_Report.pdf");
+            toast.success("Report downloaded successfully!", { id: toastId });
+        } catch (err) {
+            console.error("PDF Export Error:", err);
+            toast.error("Failed to generate PDF.", { id: toastId });
+        } finally {
+            setIsExporting(false);
+        }
+    }, [data]);
+
+    const handleClearHistory = React.useCallback(async () => {
         try {
             await API.delete('/reports/clear');
             toast.success("History cleared successfully", { icon: '🗑️' });
             setShowClearModal(false);
-            fetchReports(); // Refresh data naturally
+            fetchReports();
         } catch (err) {
             console.error("Clear History Error:", err);
-            toast.error(err.response?.data?.message || err.message || "Failed to clear history");
+            toast.error("Failed to clear history");
             setShowClearModal(false);
         }
-    };
+    }, [fetchReports]);
 
-    const handleRecalculate = () => {
-        navigate('/analysis');
-    };
+    const handleRecalculate = React.useCallback(() => {
+        navigate('/analyze-risk');
+    }, [navigate]);
 
-    const handleDetailedAnalysis = () => {
-        toast.success("Detailed analysis view coming soon!", { icon: '📊' });
-    };
+    // Reverse to show chronological order (Oldest -> Newest) in chart
+    const chartData = React.useMemo(() => {
+        if (!data || !data.riskHistory) return [];
+        return [...data.riskHistory].reverse().map(item => ({
+            date: new Date(item.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+            fullDate: new Date(item.date).toLocaleDateString(),
+            score: item.riskScore,
+            level: item.riskLevel
+        }));
+    }, [data]);
 
     if (loading) {
         return (
@@ -125,14 +223,6 @@ export default function Reports() {
         );
     }
 
-    // Reverse to show chronological order (Oldest -> Newest) in chart
-    const chartData = [...data.riskHistory].reverse().map(item => ({
-        date: new Date(item.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-        fullDate: new Date(item.date).toLocaleDateString(),
-        score: item.riskScore,
-        level: item.riskLevel
-    }));
-
     return (
         <motion.div
             initial={{ opacity: 0 }}
@@ -153,7 +243,12 @@ export default function Reports() {
                         <RefreshCw className="w-4 h-4 mr-2" />
                         Refresh
                     </Button>
-                    <Button variant="secondary" size="sm" onClick={handleExport}>
+                    <Button 
+                        variant="secondary" 
+                        size="sm" 
+                        onClick={handleExport}
+                        isLoading={isExporting}
+                    >
                         <Download className="w-4 h-4 mr-2" />
                         Export
                     </Button>
@@ -164,222 +259,93 @@ export default function Reports() {
                 </div>
             </div>
 
-            {/* 1. Risk Trend Section */}
-            <motion.div
-                initial={{ y: 20, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ delay: 0.1 }}
-            >
-                <Card className="border-t-4 border-t-primary">
-                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
-                        <div>
-                            <h2 className="text-xl font-bold flex items-center text-text-primary">
-                                <div className="bg-primary/10 p-2 rounded-lg mr-3">
-                                    <TrendingUp className="w-5 h-5 text-primary" />
-                                </div>
-                                Risk Trend Analysis
-                            </h2>
-                            <p className="text-sm text-text-muted mt-1 ml-10">Track your risk score variations over time.</p>
-                        </div>
-                        <div className="flex gap-2">
-                            <Badge variant="success">Low</Badge>
-                            <Badge variant="warning">Medium</Badge>
-                            <Badge variant="danger">High</Badge>
-                        </div>
-                    </div>
-
-                    <div className="h-[320px] w-full">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <LineChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
-                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F3F4F6" />
-                                <XAxis
-                                    dataKey="date"
-                                    axisLine={false}
-                                    tickLine={false}
-                                    tick={{ fill: '#94A3B8', fontSize: 12, fontWeight: 500 }}
-                                    dy={15}
-                                />
-                                <YAxis
-                                    domain={[0, 100]}
-                                    axisLine={false}
-                                    tickLine={false}
-                                    tick={{ fill: '#94A3B8', fontSize: 12, fontWeight: 500 }}
-                                    dx={-10}
-                                />
-                                <Tooltip
-                                    contentStyle={{
-                                        borderRadius: '12px',
-                                        border: 'none',
-                                        boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1)',
-                                        padding: '12px'
-                                    }}
-                                    cursor={{ stroke: '#4F46E5', strokeWidth: 1, strokeDasharray: '4 4' }}
-                                />
-                                <Line
-                                    type="monotone"
-                                    dataKey="score"
-                                    stroke="#4F46E5"
-                                    strokeWidth={3}
-                                    dot={{ fill: '#fff', strokeWidth: 2, r: 4, stroke: '#4F46E5' }}
-                                    activeDot={{ r: 6, strokeWidth: 0, fill: '#4F46E5' }}
-                                    animationDuration={1500}
-                                />
-                            </LineChart>
-                        </ResponsiveContainer>
-                    </div>
-                </Card>
-            </motion.div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                {/* 2. Academic Performance Section */}
+            <div className="space-y-8">
+                {/* 1. Risk Trend Section */}
                 <motion.div
                     initial={{ y: 20, opacity: 0 }}
                     animate={{ y: 0, opacity: 1 }}
-                    transition={{ delay: 0.2 }}
-                    className="h-full"
+                    transition={{ delay: 0.1 }}
                 >
-                    <Card className="h-full flex flex-col justify-between border-t-4 border-t-blue-500">
-                        <div>
-                            <div className="flex justify-between items-start mb-6">
-                                <h2 className="text-xl font-bold flex items-center text-text-primary">
-                                    <div className="bg-blue-100 p-2 rounded-lg mr-3">
-                                        <BookOpen className="w-5 h-5 text-blue-600" />
-                                    </div>
-                                    Academic Status
-                                </h2>
-                                <Button variant="ghost" size="sm" onClick={() => navigate('/dashboard')}>
-                                    Edit Goal
-                                </Button>
-                            </div>
-
-                            {data.cgpa.targetCGPA > 0 ? (
-                                <div className="space-y-8">
-                                    <div className="flex justify-between items-end">
-                                        <div>
-                                            <p className="text-xs font-bold text-text-muted mb-2 uppercase tracking-wider">Current</p>
-                                            <div className="flex items-baseline">
-                                                <p className="text-5xl font-extrabold text-text-primary">{data.cgpa.currentCGPA}</p>
-                                                <span className="text-text-muted ml-2 font-medium">/ 10</span>
-                                            </div>
-                                        </div>
-                                        <div className="text-right">
-                                            <p className="text-xs font-bold text-text-muted mb-2 uppercase tracking-wider">Target</p>
-                                            <div className="bg-blue-50 px-4 py-2 rounded-xl inline-block">
-                                                <p className="text-2xl font-bold text-blue-600">{data.cgpa.targetCGPA}</p>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {/* Progress Bar */}
-                                    <div className="space-y-2">
-                                        <div className="flex justify-between text-xs font-semibold text-text-muted">
-                                            <span>Progress to Goal</span>
-                                            <span>{Math.min((data.cgpa.currentCGPA / data.cgpa.targetCGPA) * 100, 100).toFixed(0)}%</span>
-                                        </div>
-                                        <div className="w-full bg-gray-100 rounded-full h-3 overflow-hidden shadow-inner">
-                                            <motion.div
-                                                initial={{ width: 0 }}
-                                                animate={{ width: `${Math.min((data.cgpa.currentCGPA / data.cgpa.targetCGPA) * 100, 100)}%` }}
-                                                transition={{ duration: 1.5, ease: "easeOut" }}
-                                                className="bg-gradient-to-r from-blue-400 to-blue-600 h-3 rounded-full"
-                                            ></motion.div>
-                                        </div>
-                                    </div>
-
-                                    <div className="bg-blue-50/50 rounded-xl p-4 border border-blue-100/50">
-                                        <p className="text-sm text-blue-800 font-medium leading-relaxed">
-                                            {data.cgpa.currentCGPA >= data.cgpa.targetCGPA
-                                                ? "You've exceeded your target! Consider setting a higher goal to maintain momentum."
-                                                : `Gap to target: ${(data.cgpa.targetCGPA - data.cgpa.currentCGPA).toFixed(2)}. Maintain high attendance and study hours to close this gap.`}
-                                        </p>
-                                    </div>
-                                </div>
-                            ) : (
-                                <div className="text-center py-12 flex flex-col items-center justify-center h-full">
-                                    <div className="bg-gray-100 p-4 rounded-full mb-4">
-                                        <BookOpen className="h-8 w-8 text-gray-400" />
-                                    </div>
-                                    <p className="text-text-secondary font-medium mb-4">No GPA data available</p>
-                                    <Button variant="outline" onClick={() => navigate('/dashboard')}>
-                                        Set Goal
-                                    </Button>
-                                </div>
-                            )}
-                        </div>
-                    </Card>
-                </motion.div>
-
-                {/* 3. Lifestyle Summary Section */}
-                <motion.div
-                    initial={{ y: 20, opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    transition={{ delay: 0.3 }}
-                >
-                    <Card className="h-full border-t-4 border-t-purple-500">
-                        <div className="flex justify-between items-start mb-6">
-                            <h2 className="text-xl font-bold flex items-center text-text-primary">
-                                <div className="bg-purple-100 p-2 rounded-lg mr-3">
-                                    <Activity className="w-5 h-5 text-purple-600" />
-                                </div>
-                                Lifestyle Avg.
-                            </h2>
-                            <Button variant="ghost" size="sm" onClick={handleDetailedAnalysis}>
-                                <Eye className="w-4 h-4" />
-                            </Button>
-                        </div>
-
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <div className="p-5 bg-gradient-to-br from-indigo-50/50 to-white border border-indigo-100 rounded-2xl hover:shadow-md transition-shadow">
-                                <div className="flex items-center gap-3 mb-2">
-                                    <div className="bg-white p-1.5 rounded-lg shadow-sm">
-                                        <BookOpen className="h-4 w-4 text-indigo-600" />
-                                    </div>
-                                    <span className="text-sm font-semibold text-text-secondary">Study</span>
-                                </div>
-                                <p className="text-3xl font-bold text-text-primary mt-2">{data.averages.studyHours}<span className="text-sm font-normal text-text-muted ml-1">hrs</span></p>
-                            </div>
-
-                            <div className="p-5 bg-gradient-to-br from-purple-50/50 to-white border border-purple-100 rounded-2xl hover:shadow-md transition-shadow">
-                                <div className="flex items-center gap-3 mb-2">
-                                    <div className="bg-white p-1.5 rounded-lg shadow-sm">
-                                        <Moon className="h-4 w-4 text-purple-600" />
-                                    </div>
-                                    <span className="text-sm font-semibold text-text-secondary">Sleep</span>
-                                </div>
-                                <p className="text-3xl font-bold text-text-primary mt-2">{data.averages.sleepHours}<span className="text-sm font-normal text-text-muted ml-1">hrs</span></p>
-                            </div>
-
-                            <div className="col-span-1 sm:col-span-2 p-5 bg-gradient-to-br from-green-50/50 to-white border border-green-100 rounded-2xl flex items-center justify-between hover:shadow-md transition-shadow">
+                    <div ref={chartRef}>
+                        <Card className="border-t-4 border-t-primary">
+                            <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
                                 <div>
-                                    <div className="flex items-center gap-3 mb-2">
-                                        <div className="bg-white p-1.5 rounded-lg shadow-sm">
-                                            <CheckCircle className="h-4 w-4 text-green-600" />
+                                    <h2 className="text-xl font-bold flex items-center text-text-primary">
+                                        <div className="bg-primary/10 p-2 rounded-lg mr-3">
+                                            <TrendingUp className="w-5 h-5 text-primary" />
                                         </div>
-                                        <span className="text-sm font-semibold text-text-secondary">Attendance</span>
-                                    </div>
-                                    <p className="text-3xl font-bold text-text-primary mt-1">{data.averages.attendance}<span className="text-sm font-normal text-text-muted ml-1">%</span></p>
+                                        Risk Trend Analysis
+                                    </h2>
+                                    <p className="text-sm text-text-muted mt-1 ml-10">Track your risk score variations over time.</p>
                                 </div>
-
-                                <div className="h-14 w-14 relative">
-                                    <svg className="transform -rotate-90 w-full h-full">
-                                        <circle cx="28" cy="28" r="24" stroke="#E5E7EB" strokeWidth="4" fill="none" />
-                                        <circle cx="28" cy="28" r="24" stroke="#10B981" strokeWidth="4" fill="none" strokeDasharray={150} strokeDashoffset={150 - (150 * data.averages.attendance) / 100} />
-                                    </svg>
+                                <div className="flex gap-2">
+                                    <Badge variant="success">Low</Badge>
+                                    <Badge variant="warning">Medium</Badge>
+                                    <Badge variant="danger">High</Badge>
                                 </div>
                             </div>
-                        </div>
 
-                        <div className="mt-8 flex justify-center">
-                            <Button variant="outline" className="w-full" onClick={handleRecalculate}>
-                                <RotateCcw className="w-4 h-4 mr-2" />
-                                Recalculate Risk
-                            </Button>
-                        </div>
-                    </Card>
+                            <div className="h-[320px] w-full">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <LineChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F3F4F6" />
+                                        <XAxis
+                                            dataKey="date"
+                                            axisLine={false}
+                                            tickLine={false}
+                                            tick={{ fill: '#94A3B8', fontSize: 12, fontWeight: 500 }}
+                                            dy={15}
+                                            padding={{ left: 30, right: 30 }}
+                                        />
+                                        <YAxis
+                                            domain={[0, 9]}
+                                            ticks={[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]}
+                                            axisLine={false}
+                                            tickLine={false}
+                                            tick={{ fill: '#94A3B8', fontSize: 12, fontWeight: 500 }}
+                                            dx={-10}
+                                        />
+                                        <Tooltip
+                                            content={({ active, payload, label }) => {
+                                                if (active && payload && payload.length) {
+                                                    const data = payload[0].payload;
+                                                    return (
+                                                        <div style={{
+                                                            backgroundColor: '#fff',
+                                                            borderRadius: '12px',
+                                                            border: 'none',
+                                                            boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1)',
+                                                            padding: '12px'
+                                                        }}>
+                                                            <p className="font-semibold text-text-primary mb-1">{label}</p>
+                                                            <p className="text-primary font-medium">Risk Score: {data.score}</p>
+                                                            <p className="text-text-secondary mt-1">
+                                                                Risk Level: <span className="font-medium capitalize text-text-primary">{data.level}</span>
+                                                            </p>
+                                                        </div>
+                                                    );
+                                                }
+                                                return null;
+                                            }}
+                                            cursor={{ stroke: '#4F46E5', strokeWidth: 1, strokeDasharray: '4 4' }}
+                                        />
+                                        <Line
+                                            type="monotone"
+                                            dataKey="score"
+                                            stroke="#4F46E5"
+                                            strokeWidth={3}
+                                            dot={{ fill: '#fff', strokeWidth: 2, r: 4, stroke: '#4F46E5' }}
+                                            activeDot={{ r: 6, strokeWidth: 0, fill: '#4F46E5' }}
+                                            animationDuration={1500}
+                                        />
+                                    </LineChart>
+                                </ResponsiveContainer>
+                            </div>
+                        </Card>
+                    </div>
                 </motion.div>
             </div>
 
-            {/* Clear History Modal */}
             <Modal
                 isOpen={showClearModal}
                 onClose={() => setShowClearModal(false)}

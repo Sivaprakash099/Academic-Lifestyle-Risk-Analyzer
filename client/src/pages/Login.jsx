@@ -2,10 +2,11 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
 import { toast } from 'react-hot-toast';
-import axios from 'axios';
 import AuthLayout from '../layouts/AuthLayout';
 import Input from '../components/ui/Input';
 import Button from '../components/ui/Button';
+import { signInWithPopup } from 'firebase/auth';
+import { auth, googleProvider } from '../firebase';
 
 export default function Login() {
     const navigate = useNavigate();
@@ -15,6 +16,7 @@ export default function Login() {
     });
     const [showPassword, setShowPassword] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
+    const [isGoogleLoading, setIsGoogleLoading] = useState(false);
     const [errors, setErrors] = useState({});
 
     const handleChange = (e) => {
@@ -30,6 +32,51 @@ export default function Login() {
         if (!formData.email) newErrors.email = 'Email is required';
         if (!formData.password) newErrors.password = 'Password is required';
         return newErrors;
+    };
+
+    const handleGoogleLogin = async () => {
+        setIsGoogleLoading(true);
+        try {
+            const result = await signInWithPopup(auth, googleProvider);
+            const user = result.user;
+
+            // Sync with backend
+            const response = await fetch('http://localhost:5000/api/auth/google', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    name: user.displayName,
+                    email: user.email,
+                    photo: user.photoURL
+                }),
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.message || 'Google login failed');
+            }
+
+            localStorage.setItem('token', data.token);
+            localStorage.setItem('user', JSON.stringify({
+                name: data.name,
+                email: data.email,
+                role: data.role,
+                photo: user.photoURL
+            }));
+
+            toast.success('Signed in with Google!');
+            navigate('/');
+        } catch (error) {
+            console.error('Google login error:', error);
+            if (error.code !== 'auth/popup-closed-by-user') {
+                toast.error(error.message || 'Google authentication failed');
+            }
+        } finally {
+            setIsGoogleLoading(false);
+        }
     };
 
     const handleSubmit = async (e) => {
@@ -145,7 +192,8 @@ export default function Login() {
                     type="button"
                     variant="secondary"
                     className="w-full"
-                    onClick={() => toast.error('Google login not implemented yet')}
+                    onClick={handleGoogleLogin}
+                    isLoading={isGoogleLoading}
                 >
                     <img src="https://www.svgrepo.com/show/475656/google-color.svg" className="w-5 h-5 mr-2" alt="Google" />
                     Sign in with Google

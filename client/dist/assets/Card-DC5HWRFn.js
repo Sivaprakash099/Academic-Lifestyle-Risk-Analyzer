@@ -1,0 +1,1 @@
+import{j as a}from"./vendor-CHOdf4FO.js";const t=({children:r,className:o="",...s})=>a.jsx("div",{className:`bg-white rounded-xl shadow-soft border border-gray-100 p-6 hover:shadow-card transition-shadow duration-300 ${o}`,...s,children:r});export{t as C};

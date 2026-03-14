@@ -1,4 +1,4 @@
-const RiskResult = require('../models/RiskResult');
+const RiskAnalysis = require('../models/RiskAnalysis');
 const Dashboard = require('../models/Dashboard');
 const Lifestyle = require('../models/Lifestyle');
 
@@ -10,7 +10,7 @@ const getReports = async (req, res) => {
         const userId = req.user.id;
 
         // 1. Fetch Risk History (latest first)
-        const riskHistory = await RiskResult.find({ user: userId })
+        const riskHistory = await RiskAnalysis.find({ userId: userId })
             .sort({ createdAt: -1 })
             .populate('lifestyleDisplay');
 
@@ -46,18 +46,34 @@ const getReports = async (req, res) => {
         };
 
         // 4. Construct Response
-        const reportData = {
-            riskHistory: riskHistory.map(item => ({
+        const mappedHistory = riskHistory.map(item => {
+            const ls = item.lifestyleDisplay || {};
+            
+            // Ensure riskLevel exists
+            const riskLevel = item.riskLevel || 'Low Risk';
+
+            return {
                 id: item._id,
-                date: item.createdAt,
-                riskScore: item.riskScore,
-                riskLevel: item.riskLevel
-            })),
+                createdAt: item.createdAt,
+                date: item.createdAt, // For compatibility
+                riskScore: item.riskScore !== undefined ? item.riskScore : 0,
+                riskLevel: riskLevel,
+                // Direct Snapshot Fields (V2) or Fallback to lifestyleDisplay (V1)
+                studyHours: item.studyHours !== undefined ? item.studyHours : (ls.studyHours !== undefined ? ls.studyHours : 0),
+                sleepHours: item.sleepHours !== undefined ? item.sleepHours : (ls.sleepHours !== undefined ? ls.sleepHours : 0),
+                stressLevel: item.stressLevel || ls.stressLevel || 'Low',
+                attendance: item.attendance !== undefined ? item.attendance : (ls.attendance !== undefined ? ls.attendance : 0)
+            };
+        });
+
+        const reportData = {
+            analysis: mappedHistory,
+            riskHistory: mappedHistory,
             averages,
             cgpa: dashboard ? dashboard.cgpa : {
                 currentCGPA: 0,
                 targetCGPA: 0,
-                required: 0 // You might want to calculate this specifically if not stored
+                required: 0
             }
         };
 
@@ -76,10 +92,10 @@ const clearHistory = async (req, res) => {
         // 1. Delete all Lifestyle documents for this user
         await Lifestyle.deleteMany({ user: userId });
 
-        // 2. Delete all RiskResult documents for this user
-        await RiskResult.deleteMany({ user: userId });
+        // 2. Delete all RiskAnalysis documents for this user
+        await RiskAnalysis.deleteMany({ userId: userId });
 
-        // 3. Reset Dashboard history and stats
+        // 3. Reset Dashboard history, stats, and CGPA
         await Dashboard.findOneAndUpdate(
             { user: userId },
             {
@@ -91,6 +107,13 @@ const clearHistory = async (req, res) => {
                         sleepHours: 0,
                         stressLevel: 'Not Assessed',
                         attendance: 0
+                    },
+                    cgpa: {
+                        currentCGPA: 0,
+                        targetCGPA: 0,
+                        totalSemesters: 8,
+                        completedSemesters: 0,
+                        lastUpdated: Date.now()
                     }
                 }
             }
@@ -100,7 +123,6 @@ const clearHistory = async (req, res) => {
             success: true,
             message: "All history deleted successfully"
         });
-
     } catch (error) {
         console.error("Clear History Error:", error);
         res.status(500).json({ success: false, message: "Server Error clearing history" });
